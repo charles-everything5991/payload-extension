@@ -7,7 +7,7 @@
   };
   (document.head || document.documentElement).appendChild(s);
 
-  let encryptionKey = 'd427e682c1a848a6a5e5f0178759b137';
+  let encryptionKey = '';
   let requests = [];
   let selectedRequest = null;
   let searchQuery = '';
@@ -250,14 +250,48 @@
         color: #cdd6f4;
       }
       
-      .section-title {
-        font-weight: bold;
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-top: 14px;
         margin-bottom: 6px;
+      }
+      .section-title {
+        font-weight: bold;
         color: #b4befe;
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        margin: 0;
+      }
+      .copy-buttons {
+        display: flex;
+        gap: 6px;
+      }
+      .btn-copy {
+        background: #313244;
+        color: #cdd6f4;
+        border: 1px solid #45475a;
+        padding: 3px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: bold;
+        transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+      }
+      .btn-copy:hover {
+        background: #45475a;
+        border-color: #89b4fa;
+        color: #89b4fa;
+      }
+      .btn-copy:active {
+        transform: scale(0.95);
+      }
+      .btn-copy.copied {
+        background: #a6e3a1;
+        color: #11111b;
+        border-color: #a6e3a1;
       }
       pre {
         margin: 0;
@@ -340,6 +374,75 @@
       renderDetails(null);
     });
 
+    // Helper to format object as a JavaScript object literal string
+    function toJsObjectString(val, indent = 0) {
+      const spacing = ' '.repeat(indent);
+      
+      if (val === null) return 'null';
+      if (val === undefined) return 'undefined';
+      
+      if (typeof val === 'string') {
+        const escaped = val.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        return `'${escaped}'`;
+      }
+      if (typeof val === 'number' || typeof val === 'boolean') {
+        return String(val);
+      }
+      if (Array.isArray(val)) {
+        if (val.length === 0) return '[]';
+        const items = val.map(item => toJsObjectString(item, indent + 2));
+        return `[\n${spacing}  ${items.join(`,\n${spacing}  `)}\n${spacing}]`;
+      }
+      if (typeof val === 'object') {
+        const keys = Object.keys(val);
+        if (keys.length === 0) return '{}';
+        const pairs = keys.map(key => {
+          const isWord = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key);
+          const formattedKey = isWord ? key : `'${key.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+          const valueStr = toJsObjectString(val[key], indent + 2);
+          return `${spacing}  ${formattedKey}: ${valueStr}`;
+        });
+        return `{\n${pairs.join(`,\n`)}\n${spacing}}`;
+      }
+      return String(val);
+    }
+
+    // Event listener for copy buttons
+    drawerDetail.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-copy');
+      if (!btn) return;
+      
+      const format = btn.getAttribute('data-format');
+      const type = btn.getAttribute('data-type');
+      
+      if (!selectedRequest) return;
+      
+      const data = type === 'request' ? selectedRequest.decryptedRequest : selectedRequest.decryptedResponse;
+      if (!data) return;
+      
+      // If we got decryption error object, copy the error message/raw value instead
+      const dataToFormat = data.__error ? { error: data.__error } : data;
+      
+      let textToCopy = '';
+      if (format === 'json') {
+        textToCopy = JSON.stringify(dataToFormat, null, 2);
+      } else if (format === 'object') {
+        textToCopy = toJsObjectString(dataToFormat);
+      }
+      
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.classList.remove('copied');
+        }, 1500);
+      }).catch(err => {
+        console.error('Failed to copy text: ', err);
+      });
+    });
+
     function updateKeyIndicator() {
       if (encryptionKey && encryptionKey.trim().length >= 32) {
         keyIndicator.textContent = '🟢 Key Configured';
@@ -398,7 +501,9 @@
 
       // Format request display
       let reqHtml = '';
+      let hasRequest = false;
       if (req.decryptedRequest) {
+        hasRequest = true;
         const isDecryptErr = req.decryptedRequest.__error;
         reqHtml = `<pre class="${isDecryptErr ? 'err-pre' : ''}">${JSON.stringify(req.decryptedRequest, null, 2)}</pre>`;
       } else {
@@ -407,7 +512,9 @@
 
       // Format response display
       let resHtml = '';
+      let hasResponse = false;
       if (req.decryptedResponse) {
+        hasResponse = true;
         const isDecryptErr = req.decryptedResponse.__error;
         resHtml = `<pre class="${isDecryptErr ? 'err-pre' : ''}">${JSON.stringify(req.decryptedResponse, null, 2)}</pre>`;
       } else {
@@ -422,10 +529,26 @@
           </div>
         </div>
         
-        <div class="section-title">Decrypted Request Body</div>
+        <div class="section-header">
+          <div class="section-title">Decrypted Request Body</div>
+          ${hasRequest ? `
+          <div class="copy-buttons">
+            <button class="btn-copy" data-type="request" data-format="json">Copy JSON</button>
+            <button class="btn-copy" data-type="request" data-format="object">Copy Object</button>
+          </div>
+          ` : ''}
+        </div>
         ${reqHtml}
         
-        <div class="section-title">Decrypted Response Body</div>
+        <div class="section-header">
+          <div class="section-title">Decrypted Response Body</div>
+          ${hasResponse ? `
+          <div class="copy-buttons">
+            <button class="btn-copy" data-type="response" data-format="json">Copy JSON</button>
+            <button class="btn-copy" data-type="response" data-format="object">Copy Object</button>
+          </div>
+          ` : ''}
+        </div>
         ${resHtml}
       `;
     }

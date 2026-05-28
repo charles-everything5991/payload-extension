@@ -1,5 +1,5 @@
 (function() {
-  let encryptionKey = 'd427e682c1a848a6a5e5f0178759b137'; // Default to staging key
+  let encryptionKey = '';
 
   // Decryption setup
   const ALG = 'AES-GCM';
