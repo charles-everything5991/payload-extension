@@ -70,7 +70,43 @@
     }
   });
 
-  async function processPayload(url, method, status, reqBodyStr, resBodyStr) {
+  async function safeSerialize(val) {
+    if (!val) return null;
+    if (typeof val === 'string') return val;
+    if (val instanceof URLSearchParams) return val.toString();
+    if (val instanceof FormData) {
+      const obj = {};
+      val.forEach((value, key) => {
+        if (value instanceof File) {
+          obj[key] = `[File: ${value.name} (${value.size} bytes)]`;
+        } else {
+          obj[key] = value;
+        }
+      });
+      return JSON.stringify(obj);
+    }
+    if (val instanceof Blob) {
+      try {
+        return await val.text();
+      } catch (e) {
+        return `[Blob: ${val.type || 'unknown'}]`;
+      }
+    }
+    if (val instanceof ArrayBuffer || ArrayBuffer.isView(val)) {
+      try {
+        return new TextDecoder().decode(val);
+      } catch (e) {
+        return '[ArrayBuffer]';
+      }
+    }
+    try {
+      return JSON.stringify(val);
+    } catch (e) {
+      return String(val);
+    }
+  }
+
+  async function processPayload(url, method, status, reqBody, resBody) {
     // Ensure url is always a string (handles URL objects)
     const urlStr = typeof url === 'string' ? url : (url && url.href ? url.href : String(url || ''));
 
@@ -96,6 +132,10 @@
       rawResponse: null,
       decryptedResponse: null
     };
+
+    // Serialize request & response safely to avoid DataCloneError in postMessage
+    const reqBodyStr = await safeSerialize(reqBody);
+    const resBodyStr = await safeSerialize(resBody);
 
     // Parse request
     if (reqBodyStr) {
@@ -214,10 +254,14 @@
   XMLHttpRequest.prototype.send = function(body) {
     this._requestBody = body;
     
-    this.addEventListener('load', () => {
+    this.addEventListener('loadend', () => {
       let resBody = null;
       try {
-        resBody = this.responseText;
+        if (!this.responseType || this.responseType === 'text') {
+          resBody = this.responseText;
+        } else {
+          resBody = this.response;
+        }
       } catch (e) {}
       
       processPayload(this._url, this._method, this.status, this._requestBody, resBody);
@@ -228,3 +272,4 @@
 
   console.log('🔓 Liga Network Decrypter hook injected successfully.');
 })();
+
