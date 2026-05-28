@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 320px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      background: #1e1e2e;
+      color: #cdd6f4;
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #89b4fa;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color: #a6adc8;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      border: 1px solid #45475a;
+      border-radius: 6px;
+      background: #313244;
+      color: #cdd6f4;
+      font-size: 12px;
+      outline: none;
+    }
+    input:focus {
+      border-color: #89b4fa;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #89b4fa;
+      color: #11111b;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #b4befe;
+    }
+    .status {
+      font-size: 11px;
+      text-align: center;
+      margin-top: 8px;
+      color: #a6e3a1;
+      height: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🔑 Liga Decrypter Settings</h2>
+  <div class="form-group">
+    <label for="enc-key">PAYLOAD_ENCRYPTION_KEY</label>
+    <input type="password" id="enc-key" placeholder="Enter key (minimum 32 characters)" />
+  </div>
+  <button id="save-btn">Save Key</button>
+  <div class="status" id="status-msg"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
