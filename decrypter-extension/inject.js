@@ -71,20 +71,23 @@
   });
 
   async function processPayload(url, method, status, reqBodyStr, resBodyStr) {
+    // Ensure url is always a string (handles URL objects)
+    const urlStr = typeof url === 'string' ? url : (url && url.href ? url.href : String(url || ''));
+
     // Exclude static assets, developer tools, and tracking scripts
-    const isAsset = url.includes('.js') || 
-                    url.includes('.css') || 
-                    url.includes('.png') || 
-                    url.includes('.svg') || 
-                    url.includes('.jpg') || 
-                    url.includes('hot-update.json') || 
-                    url.includes('sentry') ||
-                    url.includes('beacon');
+    const isAsset = urlStr.includes('.js') || 
+                    urlStr.includes('.css') || 
+                    urlStr.includes('.png') || 
+                    urlStr.includes('.svg') || 
+                    urlStr.includes('.jpg') || 
+                    urlStr.includes('hot-update.json') || 
+                    urlStr.includes('sentry') ||
+                    urlStr.includes('beacon');
     if (isAsset) return;
 
     const entry = {
       id: 'req-' + Date.now() + '-' + Math.random(),
-      url,
+      url: urlStr,
       method,
       status,
       time: new Date().toLocaleTimeString(),
@@ -146,8 +149,24 @@
   // --- HOCKING FETCH ---
   const originalFetch = window.fetch;
   window.fetch = async function(input, init) {
-    let url = typeof input === 'string' ? input : (input instanceof Request ? input.url : '');
-    let method = init && init.method ? init.method : 'GET';
+    let url = '';
+    if (typeof input === 'string') {
+      url = input;
+    } else if (input instanceof URL) {
+      url = input.href;
+    } else if (input instanceof Request) {
+      url = input.url;
+    } else if (input && typeof input === 'object' && 'href' in input) {
+      url = input.href;
+    }
+
+    let method = 'GET';
+    if (init && init.method) {
+      method = init.method;
+    } else if (input instanceof Request) {
+      method = input.method;
+    }
+
     let reqBody = init && init.body ? init.body : null;
 
     if (input instanceof Request && !reqBody) {
@@ -182,7 +201,7 @@
 
   XMLHttpRequest.prototype.open = function(method, url) {
     this._method = method;
-    this._url = url;
+    this._url = url instanceof URL ? url.href : String(url || '');
     this._requestHeaders = {};
     return originalOpen.apply(this, arguments);
   };
