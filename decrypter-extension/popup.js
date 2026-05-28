@@ -3,14 +3,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveBtn = document.getElementById("save-btn");
   const statusMsg = document.getElementById("status-msg");
 
-  // Load existing key, default to staging key
-  const defaultStgKey = 'd427e682c1a848a6a5e5f0178759b137';
+  // Load existing key
   chrome.storage.local.get(["encryption_key"], (result) => {
     if (result.encryption_key) {
       keyInput.value = result.encryption_key;
     } else {
-      keyInput.value = defaultStgKey;
-      chrome.storage.local.set({ encryption_key: defaultStgKey });
+      keyInput.value = '';
     }
   });
 
