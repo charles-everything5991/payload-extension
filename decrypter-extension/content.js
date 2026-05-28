@@ -11,6 +11,7 @@
   let requests = [];
   let selectedRequest = null;
   let searchQuery = '';
+  let updateKeyIndicator = null;
 
   // Synchronize key with inject.js
   function syncKey() {
@@ -18,7 +19,9 @@
       if (result.encryption_key) {
         encryptionKey = result.encryption_key;
         window.postMessage({ type: 'LIGA_DECRYPTER_SET_KEY', key: encryptionKey }, '*');
-        updateKeyIndicator();
+        if (updateKeyIndicator) {
+          updateKeyIndicator();
+        }
       }
     });
   }
@@ -31,7 +34,9 @@
     if (namespace === 'local' && changes.encryption_key) {
       encryptionKey = changes.encryption_key.newValue || '';
       window.postMessage({ type: 'LIGA_DECRYPTER_SET_KEY', key: encryptionKey }, '*');
-      updateKeyIndicator();
+      if (updateKeyIndicator) {
+        updateKeyIndicator();
+      }
     }
   });
 
@@ -81,8 +86,8 @@
       .drawer {
         position: fixed;
         top: 0;
-        right: -550px;
-        width: 520px;
+        right: -830px;
+        width: 800px;
         height: 100vh;
         background: rgba(30, 30, 46, 0.95);
         backdrop-filter: blur(12px);
@@ -181,7 +186,7 @@
       }
       
       .list-pane {
-        width: 200px;
+        width: 250px;
         border-right: 1px solid #313244;
         overflow-y: auto;
         background: rgba(17, 17, 27, 0.3);
@@ -352,12 +357,25 @@
     const keyIndicator = shadow.getElementById('drawer-key-indicator');
 
     // Toggle drawer
-    fab.addEventListener('click', () => {
+    fab.addEventListener('click', (e) => {
+      e.stopPropagation();
       drawer.classList.add('open');
     });
 
     shadow.getElementById('drawer-close').addEventListener('click', () => {
       drawer.classList.remove('open');
+    });
+
+    // Close drawer when clicking outside it
+    document.addEventListener('click', () => {
+      if (drawer.classList.contains('open')) {
+        drawer.classList.remove('open');
+      }
+    });
+
+    // Prevent closing when clicking inside the drawer itself
+    drawer.addEventListener('click', (e) => {
+      e.stopPropagation();
     });
 
     // Search filter
@@ -443,7 +461,7 @@
       });
     });
 
-    function updateKeyIndicator() {
+    updateKeyIndicator = function() {
       if (encryptionKey && encryptionKey.trim().length >= 32) {
         keyIndicator.textContent = '🟢 Key Configured';
         keyIndicator.className = 'key-indicator configured';
@@ -451,7 +469,7 @@
         keyIndicator.textContent = '🔴 Key not configured';
         keyIndicator.className = 'key-indicator';
       }
-    }
+    };
 
     // Render the list of captured requests in sidebar
     function renderList() {
