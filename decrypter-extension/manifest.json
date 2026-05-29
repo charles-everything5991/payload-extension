@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Liga Payload Decrypter Drawer",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Chrome Extension overlay drawer to decrypt and inspect request and response payloads directly on-screen.",
   "permissions": [
     "storage"

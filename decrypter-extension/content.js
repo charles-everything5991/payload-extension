@@ -150,6 +150,7 @@
         border-bottom: 1px solid #313244;
         display: flex;
         gap: 8px;
+        align-items: center;
       }
       .search-input {
         flex: 1;
@@ -382,6 +383,10 @@
       </div>
       <div class="controls">
         <input type="text" class="search-input" id="drawer-search" placeholder="Filter endpoints..." />
+        <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #a6adc8; cursor: pointer; user-select: none; white-space: nowrap;">
+          <input type="checkbox" id="drawer-preserve-log" style="cursor: pointer; margin: 0;" />
+          Preserve log
+        </label>
         <button class="btn-clear" id="drawer-clear">Clear</button>
       </div>
       <div class="content-area">
@@ -447,8 +452,21 @@
     drawerClear.addEventListener('click', () => {
       requests = [];
       selectedRequest = null;
+      chrome.storage.local.remove([storageKey]);
       renderList();
       renderDetails(null);
+    });
+
+    const preserveLogCheckbox = shadow.getElementById('drawer-preserve-log');
+    preserveLogCheckbox.checked = preserveLog;
+    preserveLogCheckbox.addEventListener('change', (e) => {
+      preserveLog = e.target.checked;
+      chrome.storage.local.set({ liga_decrypter_preserve_log: preserveLog });
+      if (preserveLog) {
+        chrome.storage.local.set({ [storageKey]: requests });
+      } else {
+        chrome.storage.local.remove([storageKey]);
+      }
     });
 
     // Helper to format object as a JavaScript object literal string
@@ -641,6 +659,9 @@
         if (requests.length > 100) {
           requests.pop();
         }
+        if (preserveLog) {
+          chrome.storage.local.set({ [storageKey]: requests });
+        }
         renderList();
         
         // Auto-update details if current request is selected
@@ -654,6 +675,17 @@
     updateKeyIndicator();
   }
 
-  // Trigger UI building safely when body is available
-  initializeUI();
+  // Load state and then initialize UI
+  let preserveLog = false;
+  const storageKey = `liga_decrypter_requests_${location.host}`;
+
+  chrome.storage.local.get(['liga_decrypter_preserve_log', storageKey], (result) => {
+    preserveLog = !!result.liga_decrypter_preserve_log;
+    if (preserveLog && result[storageKey]) {
+      requests = result[storageKey];
+    } else {
+      chrome.storage.local.remove([storageKey]);
+    }
+    initializeUI();
+  });
 })();
