@@ -315,6 +315,46 @@
       .err-pre {
         color: #f38ba8;
       }
+      
+      /* Key configuration in header */
+      .key-config-container {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-right: 12px;
+      }
+      .key-config-input {
+        background: #1e1e2e;
+        border: 1px solid #45475a;
+        color: #cdd6f4;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        outline: none;
+        width: 140px;
+        transition: border-color 0.15s;
+      }
+      .key-config-input:focus {
+        border-color: #89b4fa;
+      }
+      .btn-key-save {
+        background: #a6e3a1;
+        color: #11111b;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .btn-key-save:hover {
+        background: #94e2d5;
+      }
+      .btn-key-save.saved {
+        background: #89b4fa;
+        color: #11111b;
+      }
     `;
     shadow.appendChild(style);
 
@@ -330,9 +370,13 @@
     drawer.className = 'drawer';
     drawer.innerHTML = `
       <div class="header">
-        <div class="title-group">
+        <div class="title-group" style="flex: 1;">
           <span class="title">🔓 Liga Decrypter Console</span>
           <span class="key-indicator" id="drawer-key-indicator">🔴 Key not configured</span>
+        </div>
+        <div class="key-config-container">
+          <input type="password" id="drawer-key-input" class="key-config-input" placeholder="Encryption Key..." />
+          <button id="drawer-key-save" class="btn-key-save">Save Key</button>
         </div>
         <button class="close-btn" id="drawer-close">&times;</button>
       </div>
@@ -355,6 +399,21 @@
     const drawerSearch = shadow.getElementById('drawer-search');
     const drawerClear = shadow.getElementById('drawer-clear');
     const keyIndicator = shadow.getElementById('drawer-key-indicator');
+    const keyInput = shadow.getElementById('drawer-key-input');
+    const keySaveBtn = shadow.getElementById('drawer-key-save');
+
+    // Save key inside drawer
+    keySaveBtn.addEventListener('click', () => {
+      const rawKey = keyInput.value.trim();
+      chrome.storage.local.set({ encryption_key: rawKey }, () => {
+        keySaveBtn.textContent = 'Saved!';
+        keySaveBtn.classList.add('saved');
+        setTimeout(() => {
+          keySaveBtn.textContent = 'Save Key';
+          keySaveBtn.classList.remove('saved');
+        }, 1500);
+      });
+    });
 
     // Toggle drawer
     fab.addEventListener('click', (e) => {
@@ -468,6 +527,9 @@
       } else {
         keyIndicator.textContent = '🔴 Key not configured';
         keyIndicator.className = 'key-indicator';
+      }
+      if (keyInput && keyInput.value !== encryptionKey) {
+        keyInput.value = encryptionKey;
       }
     };
 
